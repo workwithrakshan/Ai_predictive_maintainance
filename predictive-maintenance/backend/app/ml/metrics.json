@@ -1,0 +1,66 @@
+{
+  "accuracy": 1.0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0,
+  "feature_importance": {
+    "temperature": 0.18348812611523838,
+    "cpu_usage": 0.1047035719599721,
+    "memory_usage": 0.13466233041858572,
+    "power_consumption": 0.14358547945701586,
+    "cooling_efficiency": 0.053970671613492935,
+    "network_load": 0.10059371050264782,
+    "disk_health": 0.12030891730757559,
+    "voltage_fluctuation": 0.1586871926254715
+  },
+  "class_report": {
+    "Normal": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 600.0
+    },
+    "Warning": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 300.0
+    },
+    "Critical": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 300.0
+    },
+    "accuracy": 1.0,
+    "macro avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1200.0
+    },
+    "weighted avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1200.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      600,
+      0,
+      0
+    ],
+    [
+      0,
+      300,
+      0
+    ],
+    [
+      0,
+      0,
+      300
+    ]
+  ]
+}

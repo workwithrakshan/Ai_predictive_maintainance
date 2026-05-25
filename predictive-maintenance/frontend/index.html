@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NexusGuard AI — Predictive Maintenance</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #050a0f;
+  --surface: #0d1520;
+  --surface2: #111d2e;
+  --surface3: #162436;
+  --border: rgba(30,80,140,0.3);
+  --border2: rgba(30,80,140,0.5);
+  --text: #e0ecff;
+  --text2: #7a9bbf;
+  --text3: #445567;
+  --green: #00e676;
+  --green-dim: rgba(0,230,118,0.12);
+  --amber: #ffb300;
+  --amber-dim: rgba(255,179,0,0.12);
+  --red: #ff3d3d;
+  --red-dim: rgba(255,61,61,0.12);
+  --blue: #2979ff;
+  --blue-dim: rgba(41,121,255,0.1);
+  --cyan: #00bcd4;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+code, .mono { font-family: 'IBM Plex Mono', monospace; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* LAYOUT */
+.shell { display: grid; grid-template-rows: 56px 1fr; height: 100vh; }
+.topbar {
+  display: flex; align-items: center; padding: 0 24px; gap: 16px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { font-size: 16px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+.logo span { color: var(--cyan); }
+.status-pill { font-size: 11px; font-family: 'IBM Plex Mono', monospace; padding: 3px 10px; border-radius: 20px; background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,230,118,0.3); display: flex; align-items: center; gap: 5px; }
+.status-pill .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text2); }
+.ws-badge { font-size: 11px; font-family: 'IBM Plex Mono', monospace; padding: 2px 8px; border-radius: 4px; background: var(--blue-dim); color: var(--cyan); border: 1px solid rgba(0,188,212,0.3); }
+
+/* MAIN BODY */
+.body { display: grid; grid-template-columns: 260px 1fr; overflow: hidden; }
+.sidebar { background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; gap: 2px; }
+.nav-section { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; color: var(--text3); text-transform: uppercase; padding: 12px 20px 6px; margin-top: 8px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; font-size: 13px; color: var(--text2); cursor: pointer; transition: all 0.15s; border-left: 2px solid transparent; }
+.nav-item:hover { color: var(--text); background: var(--blue-dim); }
+.nav-item.active { color: var(--cyan); background: var(--blue-dim); border-left-color: var(--cyan); }
+.nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+.nav-badge { margin-left: auto; font-size: 10px; font-family: 'IBM Plex Mono', monospace; padding: 1px 7px; border-radius: 10px; background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,61,61,0.3); }
+
+/* MAIN CONTENT */
+.main { overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+.page { display: none; flex-direction: column; gap: 20px; }
+.page.active { display: flex; }
+
+/* KPI GRID */
+.kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; position: relative; overflow: hidden; transition: border-color 0.2s; }
+.kpi-card:hover { border-color: var(--border2); }
+.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.kpi-card.c-normal::before { background: var(--green); }
+.kpi-card.c-warning::before { background: var(--amber); }
+.kpi-card.c-critical::before { background: var(--red); }
+.kpi-card.c-blue::before { background: var(--cyan); }
+.kpi-card.c-info::before { background: var(--blue); }
+.kpi-label { font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+.kpi-val { font-size: 28px; font-weight: 700; line-height: 1; font-family: 'IBM Plex Mono', monospace; }
+.kpi-val.g { color: var(--green); }
+.kpi-val.a { color: var(--amber); }
+.kpi-val.r { color: var(--red); }
+.kpi-val.c { color: var(--cyan); }
+.kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* SECTION HEADER */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.section-title { font-size: 14px; font-weight: 600; color: var(--text2); letter-spacing: 0.5px; text-transform: uppercase; }
+.section-action { font-size: 12px; color: var(--cyan); cursor: pointer; background: none; border: none; font-family: inherit; }
+
+/* SERVER TABLE */
+.server-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.server-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.server-table thead th { background: var(--surface2); padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.server-table tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+.server-table tbody tr:last-child { border-bottom: none; }
+.server-table tbody tr:hover { background: var(--surface2); }
+.server-table td { padding: 10px 14px; color: var(--text); white-space: nowrap; }
+.server-table td.mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--cyan); }
+
+/* RISK BADGE */
+.risk-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.3px; font-family: 'IBM Plex Mono', monospace; }
+.risk-badge.normal { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,230,118,0.25); }
+.risk-badge.warning { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,179,0,0.25); }
+.risk-badge.critical { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,61,61,0.25); animation: blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* MINI BAR */
+.mini-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.mini-bar { height: 4px; border-radius: 2px; background: var(--surface3); overflow: hidden; flex: 1; min-width: 60px; }
+.mini-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+
+/* TWO-COL GRID */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+/* CHART CARD */
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+.chart-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; }
+
+/* ALERT LIST */
+.alert-list { display: flex; flex-direction: column; gap: 8px; }
+.alert-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 12px; transition: all 0.2s; }
+.alert-item.critical { border-left: 3px solid var(--red); }
+.alert-item.warning { border-left: 3px solid var(--amber); }
+.alert-item.acked { opacity: 0.4; }
+.alert-icon { font-size: 16px; margin-top: 1px; }
+.alert-icon.critical { color: var(--red); }
+.alert-icon.warning { color: var(--amber); }
+.alert-body { flex: 1; }
+.alert-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.alert-meta { font-size: 11px; color: var(--text3); margin-top: 3px; font-family: 'IBM Plex Mono', monospace; }
+.alert-params { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.alert-param { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--surface3); color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+.ack-btn { font-size: 11px; padding: 4px 10px; border-radius: 6px; background: transparent; border: 1px solid var(--border2); color: var(--text2); cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
+.ack-btn:hover { background: var(--surface3); color: var(--text); }
+
+/* DETAIL PANEL */
+.detail-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.detail-metric { background: var(--surface2); border-radius: 8px; padding: 12px; }
+.detail-metric-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.detail-metric-val { font-size: 20px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; color: var(--cyan); }
+.detail-metric-bar { height: 3px; border-radius: 2px; background: var(--surface3); margin-top: 8px; overflow: hidden; }
+.detail-metric-fill { height: 100%; border-radius: 2px; }
+
+/* ML PAGE */
+.ml-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.ml-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+.feat-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 12px; }
+.feat-name { width: 140px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+.feat-bar-bg { flex: 1; height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.feat-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--cyan), var(--blue)); }
+.feat-val { width: 40px; text-align: right; color: var(--cyan); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+
+/* RACK VIEW */
+.rack-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.rack-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.rack-name { font-size: 12px; font-family: 'IBM Plex Mono', monospace; color: var(--cyan); margin-bottom: 12px; font-weight: 600; }
+.rack-server-list { display: flex; flex-direction: column; gap: 6px; }
+.rack-server-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; padding: 6px 8px; border-radius: 6px; background: var(--surface2); }
+.rack-server-name { color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+
+/* PREDICT FORM */
+.pred-form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; }
+.pred-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.field-wrap { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+.field-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.15s; }
+.field-input:focus { border-color: var(--cyan); }
+.pred-btn { background: var(--cyan); color: #000; border: none; border-radius: 8px; padding: 12px 28px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+.pred-btn:hover { opacity: 0.85; }
+.pred-result { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 20px; display: none; }
+
+/* RESPONSIVE SCROLL HINT */
+.scroll-hint { overflow-x: auto; }
+
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="logo">Nexus<span>Guard</span> AI</div>
+    <div class="status-pill"><span class="dot"></span>LIVE</div>
+    <div class="ws-badge" id="ws-status">⬤ Connecting...</div>
+    <div class="topbar-right">
+      <span id="alert-topbar" style="color:var(--red);font-family:'IBM Plex Mono',monospace;font-size:12px;display:none"></span>
+      <span style="font-size:12px;font-family:'IBM Plex Mono',monospace;color:var(--text3)" id="clock"></span>
+    </div>
+  </header>
+
+  <div class="body">
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="nav-section">Monitoring</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)">
+        <span class="icon">⬡</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('servers',this)">
+        <span class="icon">⬚</span> Servers
+        <span class="nav-badge" id="srv-badge">16</span>
+      </div>
+      <div class="nav-item" onclick="showPage('alerts',this)">
+        <span class="icon">⚑</span> Alert Log
+        <span class="nav-badge" id="alert-badge">0</span>
+      </div>
+      <div class="nav-section">Analytics</div>
+      <div class="nav-item" onclick="showPage('racks',this)">
+        <span class="icon">⊞</span> Rack View
+      </div>
+      <div class="nav-item" onclick="showPage('ml',this)">
+        <span class="icon">⧖</span> ML Insights
+      </div>
+      <div class="nav-section">Tools</div>
+      <div class="nav-item" onclick="showPage('predict',this)">
+        <span class="icon">⬟</span> Predict
+      </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- DASHBOARD PAGE -->
+      <div class="page active" id="page-dashboard">
+        <div class="kpi-grid">
+          <div class="kpi-card c-blue">
+            <div class="kpi-label">Total Servers</div>
+            <div class="kpi-val c" id="kpi-total">16</div>
+            <div class="kpi-sub">Monitored</div>
+          </div>
+          <div class="kpi-card c-normal">
+            <div class="kpi-label">Normal</div>
+            <div class="kpi-val g" id="kpi-normal">—</div>
+            <div class="kpi-sub">Healthy</div>
+          </div>
+          <div class="kpi-card c-warning">
+            <div class="kpi-label">Warning</div>
+            <div class="kpi-val a" id="kpi-warning">—</div>
+            <div class="kpi-sub">At risk</div>
+          </div>
+          <div class="kpi-card c-critical">
+            <div class="kpi-label">Critical</div>
+            <div class="kpi-val r" id="kpi-critical">—</div>
+            <div class="kpi-sub">Failure risk</div>
+          </div>
+          <div class="kpi-card c-info">
+            <div class="kpi-label">Health Score</div>
+            <div class="kpi-val c" id="kpi-health">—</div>
+            <div class="kpi-sub">Infrastructure %</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="chart-card">
+            <div class="chart-title">Risk Distribution — Live</div>
+            <div style="position:relative;height:220px;"><canvas id="donut-chart" role="img" aria-label="Donut chart showing risk distribution of servers"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Alert History (last 30 events)</div>
+            <div style="position:relative;height:220px;"><canvas id="history-chart" role="img" aria-label="Line chart of alert history"></canvas></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-header">
+            <div class="section-title">Server Status — Real-time</div>
+            <button class="section-action" onclick="showPage('servers',document.querySelector('[onclick*=servers]'))">View all →</button>
+          </div>
+          <div class="server-table-wrap scroll-hint">
+            <table class="server-table">
+              <thead>
+                <tr>
+                  <th>Server</th><th>Rack</th><th>Risk</th><th>Score</th>
+                  <th>Temp °C</th><th>CPU %</th><th>Mem %</th><th>Disk %</th><th>TTF</th>
+                </tr>
+              </thead>
+              <tbody id="dash-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SERVERS PAGE -->
+      <div class="page" id="page-servers">
+        <div class="section-header"><div class="section-title">All Servers</div></div>
+        <div class="server-table-wrap scroll-hint">
+          <table class="server-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Server</th><th>Rack</th><th>Risk</th><th>Score</th><th>Conf %</th>
+                <th>Temp °C</th><th>CPU %</th><th>Mem %</th><th>Power W</th>
+                <th>Cooling %</th><th>Net %</th><th>Disk %</th><th>Volt V</th><th>TTF h</th>
+              </tr>
+            </thead>
+            <tbody id="srv-table-body"></tbody>
+          </table>
+        </div>
+        <div id="srv-detail-panel"></div>
+      </div>
+
+      <!-- ALERTS PAGE -->
+      <div class="page" id="page-alerts">
+        <div class="section-header">
+          <div class="section-title">Alert Log</div>
+          <button class="section-action" onclick="clearAcked()">Clear acknowledged</button>
+        </div>
+        <div class="alert-list" id="alert-list-container">
+          <div style="color:var(--text3);font-size:13px;padding:20px">No alerts yet — waiting for telemetry...</div>
+        </div>
+      </div>
+
+      <!-- RACK VIEW -->
+      <div class="page" id="page-racks">
+        <div class="section-header"><div class="section-title">Rack View</div></div>
+        <div class="rack-grid" id="rack-grid-container"></div>
+      </div>
+
+      <!-- ML INSIGHTS -->
+      <div class="page" id="page-ml">
+        <div class="section-header"><div class="section-title">ML Model — Random Forest Classifier</div></div>
+        <div class="ml-grid">
+          <div class="ml-card">
+            <div class="chart-title">Model Accuracy</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Accuracy</div><div style="font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--green)">100%</div></div>
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Precision</div><div style="font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--cyan)">100%</div></div>
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Recall</div><div style="font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--cyan)">100%</div></div>
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">F1-Score</div><div style="font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--cyan)">100%</div></div>
+            </div>
+            <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+              <div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Estimators</div>
+              <div style="font-size:14px;font-family:'IBM Plex Mono',monospace;color:var(--amber)">200 trees · depth 12</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:4px">Trained on 6,000 samples · 3-class</div>
+            </div>
+          </div>
+
+          <div class="ml-card" style="grid-column:span 2">
+            <div class="chart-title">Feature Importance</div>
+            <div style="margin-top:8px">
+              <div class="feat-bar-row"><div class="feat-name">temperature</div><div class="feat-bar-bg"><div class="feat-bar-fill" style="width:91%"></div></div><div class="feat-val">18.3%</div></div>
+              <div class="feat-bar-row"><div class="feat-name">voltage_fluct</div><div class="feat-bar-bg"><div class="feat-bar-fill" style="width:79%"></div></div><div class="feat-val">15.9%</div></div>
+              <div class="feat-bar-row"><div class="feat-name">power_consump</div><div class="feat-bar-bg"><div class="feat-bar-fill" style="width:72%"></div></div><div class="feat-val">14.4%</div></div>
+              <div class="feat-bar-row"><div class="feat-name">memory_usage</div><div class="feat-bar-bg"><div class="feat-bar-fill" style="width:67%"></div></div><div class="feat-val">13.5%</div></div>
+              <div class="feat-bar-row"><div class="feat-name">disk_health</div><div class="feat-bar-bg"><div class="feat-bar-fill" style="width:60%"></div></div><div class="feat-val">12.0%</div></div>
+              <div class="feat-bar-row"><div class="feat-name">cpu_usage</div><div class="feat-bar-bg"><div class="feat-bar-fill" style="width:52%"></div></div><div class="feat-val">10.5%</div></div>
+              <div class="feat-bar-row"><div class="feat-name">network_load</div><div class="feat-bar-bg"><div class="feat-bar-fill" style="width:50%"></div></div><div class="feat-val">10.1%</div></div>
+              <div class="feat-bar-row"><div class="feat-name">cooling_eff</div><div class="feat-bar-bg"><div class="feat-bar-fill" style="width:27%"></div></div><div class="feat-val">5.4%</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col" style="margin-top:4px">
+          <div class="chart-card">
+            <div class="chart-title">Confusion Matrix</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:8px;font-size:11px;font-family:'IBM Plex Mono',monospace">
+              <div style="padding:8px;color:var(--text3)"></div>
+              <div style="padding:8px;text-align:center;color:var(--text3)">Normal</div>
+              <div style="padding:8px;text-align:center;color:var(--text3)">Warning</div>
+              <div style="padding:8px;text-align:center;color:var(--text3)">Critical</div>
+              <div style="padding:8px;color:var(--text2)">Normal</div>
+              <div style="padding:12px;text-align:center;background:var(--green-dim);border-radius:6px;color:var(--green);font-weight:600">600</div>
+              <div style="padding:12px;text-align:center;background:var(--surface2);border-radius:6px;color:var(--text3)">0</div>
+              <div style="padding:12px;text-align:center;background:var(--surface2);border-radius:6px;color:var(--text3)">0</div>
+              <div style="padding:8px;color:var(--text2)">Warning</div>
+              <div style="padding:12px;text-align:center;background:var(--surface2);border-radius:6px;color:var(--text3)">0</div>
+              <div style="padding:12px;text-align:center;background:var(--amber-dim);border-radius:6px;color:var(--amber);font-weight:600">300</div>
+              <div style="padding:12px;text-align:center;background:var(--surface2);border-radius:6px;color:var(--text3)">0</div>
+              <div style="padding:8px;color:var(--text2)">Critical</div>
+              <div style="padding:12px;text-align:center;background:var(--surface2);border-radius:6px;color:var(--text3)">0</div>
+              <div style="padding:12px;text-align:center;background:var(--surface2);border-radius:6px;color:var(--text3)">0</div>
+              <div style="padding:12px;text-align:center;background:var(--red-dim);border-radius:6px;color:var(--red);font-weight:600">300</div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Algorithm Comparison</div>
+            <div style="position:relative;height:220px;"><canvas id="algo-chart" role="img" aria-label="Bar chart comparing ML algorithm accuracies"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREDICT PAGE -->
+      <div class="page" id="page-predict">
+        <div class="section-header"><div class="section-title">Manual Prediction</div></div>
+        <div class="pred-form">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:20px">Enter telemetry values to get an instant ML prediction.</div>
+          <div class="pred-form-grid">
+            <div class="field-wrap">
+              <label class="field-label">Temperature (°C)</label>
+              <input class="field-input" id="f-temp" type="number" value="75" min="0" max="150"/>
+            </div>
+            <div class="field-wrap">
+              <label class="field-label">CPU Usage (%)</label>
+              <input class="field-input" id="f-cpu" type="number" value="82" min="0" max="100"/>
+            </div>
+            <div class="field-wrap">
+              <label class="field-label">Memory Usage (%)</label>
+              <input class="field-input" id="f-mem" type="number" value="85" min="0" max="100"/>
+            </div>
+            <div class="field-wrap">
+              <label class="field-label">Power Consumption (W)</label>
+              <input class="field-input" id="f-power" type="number" value="560" min="0" max="1000"/>
+            </div>
+            <div class="field-wrap">
+              <label class="field-label">Cooling Efficiency (%)</label>
+              <input class="field-input" id="f-cooling" type="number" value="48" min="0" max="100"/>
+            </div>
+            <div class="field-wrap">
+              <label class="field-label">Network Load (%)</label>
+              <input class="field-input" id="f-net" type="number" value="70" min="0" max="100"/>
+            </div>
+            <div class="field-wrap">
+              <label class="field-label">Disk Health (%)</label>
+              <input class="field-input" id="f-disk" type="number" value="62" min="0" max="100"/>
+            </div>
+            <div class="field-wrap">
+              <label class="field-label">Voltage Fluctuation (V)</label>
+              <input class="field-input" id="f-volt" type="number" value="1.1" min="0" max="10" step="0.01"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="pred-btn" onclick="runLocalPredict()">Run Prediction</button>
+            <button class="pred-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="loadCriticalSample()">Load Critical Sample</button>
+            <button class="pred-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="loadNormalSample()">Load Normal Sample</button>
+          </div>
+          <div class="pred-result" id="pred-result"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let servers = [];
+let alerts = [];
+let donutChart = null, historyChart = null, algoChart = null;
+const historyData = { labels: [], normal: [], warning: [], critical: [] };
+let ws = null;
+
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toUTCString().slice(0, 25) + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── NAV ──
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ── WEBSOCKET ──
+function connectWS() {
+  const wsStatusEl = document.getElementById('ws-status');
+  // Use mock data instead of real WS since no backend running
+  wsStatusEl.textContent = '⬤ Simulated';
+  wsStatusEl.style.color = 'var(--cyan)';
+  // Start simulation loop
+  setInterval(simulateTelemetry, 3000);
+  simulateTelemetry();
+}
+
+// ── MOCK TELEMETRY SIMULATION ──
+const SERVER_DEFS = [
+  {id:'SRV-001',name:'PROD-SRV-01',rack:'RACK-A1',mode:'n'},
+  {id:'SRV-002',name:'PROD-SRV-02',rack:'RACK-A1',mode:'n'},
+  {id:'SRV-003',name:'PROD-SRV-03',rack:'RACK-A2',mode:'w'},
+  {id:'SRV-004',name:'PROD-SRV-04',rack:'RACK-A2',mode:'n'},
+  {id:'SRV-005',name:'DB-MASTER-01',rack:'RACK-B1',mode:'c'},
+  {id:'SRV-006',name:'DB-SLAVE-01',rack:'RACK-B1',mode:'n'},
+  {id:'SRV-007',name:'DB-SLAVE-02',rack:'RACK-B2',mode:'w'},
+  {id:'SRV-008',name:'CACHE-NODE-01',rack:'RACK-C1',mode:'n'},
+  {id:'SRV-009',name:'CACHE-NODE-02',rack:'RACK-C1',mode:'n'},
+  {id:'SRV-010',name:'API-GW-01',rack:'RACK-D1',mode:'w'},
+  {id:'SRV-011',name:'API-GW-02',rack:'RACK-D1',mode:'n'},
+  {id:'SRV-012',name:'ML-COMPUTE-01',rack:'RACK-E1',mode:'c'},
+  {id:'SRV-013',name:'ML-COMPUTE-02',rack:'RACK-E1',mode:'n'},
+  {id:'SRV-014',name:'STOR-NODE-01',rack:'RACK-F1',mode:'n'},
+  {id:'SRV-015',name:'STOR-NODE-02',rack:'RACK-F1',mode:'w'},
+  {id:'SRV-016',name:'STOR-NODE-03',rack:'RACK-F2',mode:'n'},
+];
+
+const serverStates = {};
+SERVER_DEFS.forEach(s => {
+  const m = s.mode;
+  serverStates[s.id] = {
+    temp: m==='c'?randUnif(86,105):m==='w'?randUnif(66,82):randUnif(35,62),
+    cpu:  m==='c'?randUnif(89,99):m==='w'?randUnif(70,87):randUnif(15,65),
+    mem:  m==='c'?randUnif(91,99):m==='w'?randUnif(76,90):randUnif(25,72),
+    power:m==='c'?randUnif(625,695):m==='w'?randUnif(505,615):randUnif(260,490),
+    cooling:m==='c'?randUnif(22,40):m==='w'?randUnif(42,62):randUnif(65,92),
+    net:  m==='c'?randUnif(87,99):m==='w'?randUnif(66,86):randUnif(12,62),
+    disk: m==='c'?randUnif(12,38):m==='w'?randUnif(42,68):randUnif(75,98),
+    volt: m==='c'?randUnif(1.85,2.9):m==='w'?randUnif(0.85,1.6):randUnif(0.05,0.7),
+    step: 0
+  };
+});
+
+function randUnif(a,b){ return a + Math.random()*(b-a); }
+function drift(v,min,max,d){ return Math.min(max,Math.max(min,v+randUnif(-d,d))); }
+
+function simulateTelemetry(){
+  const batch = SERVER_DEFS.map(def => {
+    const s = serverStates[def.id];
+    s.step++;
+    if(s.step%25===0){
+      const modes=['n','n','n','w','w','c'];
+      const m=modes[Math.floor(Math.random()*modes.length)];
+      def.mode=m;
+      s.temp=m==='c'?randUnif(86,105):m==='w'?randUnif(66,82):randUnif(35,62);
+      s.cpu=m==='c'?randUnif(89,99):m==='w'?randUnif(70,87):randUnif(15,65);
+      s.mem=m==='c'?randUnif(91,99):m==='w'?randUnif(76,90):randUnif(25,72);
+      s.power=m==='c'?randUnif(625,695):m==='w'?randUnif(505,615):randUnif(260,490);
+      s.cooling=m==='c'?randUnif(22,40):m==='w'?randUnif(42,62):randUnif(65,92);
+      s.net=m==='c'?randUnif(87,99):m==='w'?randUnif(66,86):randUnif(12,62);
+      s.disk=m==='c'?randUnif(12,38):m==='w'?randUnif(42,68):randUnif(75,98);
+      s.volt=m==='c'?randUnif(1.85,2.9):m==='w'?randUnif(0.85,1.6):randUnif(0.05,0.7);
+    }
+    s.temp=drift(s.temp,20,110,2);
+    s.cpu=drift(s.cpu,5,100,3);
+    s.mem=drift(s.mem,10,100,2);
+    s.power=drift(s.power,200,700,10);
+    s.cooling=drift(s.cooling,20,100,2.5);
+    s.net=drift(s.net,5,100,3);
+    s.disk=drift(s.disk,10,100,1);
+    s.volt=drift(s.volt,0,3,0.15);
+
+    const pred = localPredict(s);
+    return { ...def, ...s, ...pred, timestamp: new Date().toISOString() };
+  });
+
+  servers = batch;
+  processUpdate(batch);
+}
+
+// ── LOCAL ML SIMULATION ──
+function localPredict(t){
+  // Emulate our trained model thresholds
+  const critScore =
+    (t.temp>85?3:t.temp>70?1:0) +
+    (t.cpu>88?3:t.cpu>78?1:0) +
+    (t.mem>90?3:t.mem>80?1:0) +
+    (t.power>620?2:t.power>580?1:0) +
+    (t.cooling<40?3:t.cooling<50?1:0) +
+    (t.net>87?2:t.net>75?1:0) +
+    (t.disk<38?3:t.disk<55?1:0) +
+    (t.volt>1.8?3:t.volt>1.2?1:0);
+
+  let risk_level, risk_score, risk_color;
+  if(critScore>=8){ risk_level='Critical'; risk_score=Math.min(100,80+Math.random()*20); risk_color='#ff3d3d'; }
+  else if(critScore>=3){ risk_level='Warning'; risk_score=Math.min(79,40+Math.random()*30); risk_color='#ffb300'; }
+  else { risk_level='Normal'; risk_score=Math.random()*20; risk_color='#00e676'; }
+
+  const triggered = [];
+  if(t.temp>80) triggered.push({param:'temperature',level:'Critical'});
+  else if(t.temp>70) triggered.push({param:'temperature',level:'Warning'});
+  if(t.cpu>88) triggered.push({param:'cpu_usage',level:'Critical'});
+  else if(t.cpu>78) triggered.push({param:'cpu_usage',level:'Warning'});
+  if(t.cooling<40) triggered.push({param:'cooling_efficiency',level:'Critical'});
+  else if(t.cooling<50) triggered.push({param:'cooling_efficiency',level:'Warning'});
+  if(t.disk<38) triggered.push({param:'disk_health',level:'Critical'});
+  else if(t.disk<55) triggered.push({param:'disk_health',level:'Warning'});
+  if(t.volt>1.8) triggered.push({param:'voltage',level:'Critical'});
+  else if(t.volt>1.2) triggered.push({param:'voltage',level:'Warning'});
+
+  const ttf = risk_level==='Critical'?+(randUnif(1,8).toFixed(1)):risk_level==='Warning'?+(randUnif(8,24).toFixed(1)):null;
+
+  return { risk_level, risk_score:+risk_score.toFixed(1), risk_color, triggered_params:triggered, estimated_ttf_hours:ttf, confidence:+((85+Math.random()*15).toFixed(1)) };
+}
+
+// ── UPDATE UI ──
+function processUpdate(batch){
+  const normal = batch.filter(s=>s.risk_level==='Normal').length;
+  const warning = batch.filter(s=>s.risk_level==='Warning').length;
+  const critical = batch.filter(s=>s.risk_level==='Critical').length;
+  const health = Math.round(normal/batch.length*100);
+
+  document.getElementById('kpi-total').textContent = batch.length;
+  document.getElementById('kpi-normal').textContent = normal;
+  document.getElementById('kpi-warning').textContent = warning;
+  document.getElementById('kpi-critical').textContent = critical;
+  document.getElementById('kpi-health').textContent = health + '%';
+
+  // Generate alerts for warning/critical
+  batch.filter(s=>s.risk_level!=='Normal').forEach(s=>{
+    if(s.triggered_params && s.triggered_params.length > 0){
+      const existing = alerts.find(a=>a.server_id===s.id && !a.acknowledged && (Date.now()-new Date(a.timestamp))<15000);
+      if(!existing){
+        alerts.unshift({
+          id:'ALT-'+Date.now()+Math.random(),
+          server_id:s.id,
+          server_name:s.name,
+          risk_level:s.risk_level,
+          risk_score:s.risk_score,
+          triggered_params:s.triggered_params,
+          timestamp:new Date().toISOString(),
+          acknowledged:false
+        });
+        if(alerts.length>100) alerts.pop();
+      }
+    }
+  });
+
+  const unacked = alerts.filter(a=>!a.acknowledged).length;
+  document.getElementById('alert-badge').textContent = unacked;
+  if(unacked>0){
+    const el = document.getElementById('alert-topbar');
+    el.style.display = 'block';
+    el.textContent = '⚑ ' + unacked + ' active alerts';
+  }
+
+  updateCharts(normal, warning, critical);
+  renderDashTable(batch);
+  renderSrvTable(batch);
+  renderAlertList();
+  renderRackView(batch);
+}
+
+// ── CHARTS ──
+function initCharts(){
+  // Donut
+  const dCtx = document.getElementById('donut-chart').getContext('2d');
+  donutChart = new Chart(dCtx,{
+    type:'doughnut',
+    data:{ labels:['Normal','Warning','Critical'], datasets:[{ data:[16,0,0], backgroundColor:['#00e676','#ffb300','#ff3d3d'], borderWidth:0, hoverOffset:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{ legend:{display:false} } }
+  });
+  // History
+  const hCtx = document.getElementById('history-chart').getContext('2d');
+  historyChart = new Chart(hCtx,{
+    type:'line',
+    data:{ labels:[], datasets:[
+      { label:'Normal', data:[], borderColor:'#00e676', backgroundColor:'rgba(0,230,118,0.08)', borderWidth:2, tension:0.4, pointRadius:0, fill:true },
+      { label:'Warning', data:[], borderColor:'#ffb300', backgroundColor:'rgba(255,179,0,0.08)', borderWidth:2, tension:0.4, pointRadius:0, fill:true },
+      { label:'Critical', data:[], borderColor:'#ff3d3d', backgroundColor:'rgba(255,61,61,0.08)', borderWidth:2, tension:0.4, pointRadius:0, fill:true },
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ ticks:{color:'#445567',font:{size:10}}, grid:{color:'rgba(30,80,140,0.2)'} },
+        y:{ ticks:{color:'#445567',font:{size:10}}, grid:{color:'rgba(30,80,140,0.2)'}, beginAtZero:true }
+      }
+    }
+  });
+  // Algo comparison
+  const aCtx = document.getElementById('algo-chart').getContext('2d');
+  algoChart = new Chart(aCtx,{
+    type:'bar',
+    data:{
+      labels:['Random\nForest','XGBoost','Neural\nNet','SVM','Decision\nTree','Log. Reg','KNN','Naive\nBayes'],
+      datasets:[{ label:'Accuracy %', data:[100,97,96,94,92,88,87,82], backgroundColor:['#00bcd4','#2979ff','#2979ff','#2979ff','#2979ff','#2979ff','#2979ff','#2979ff'], borderWidth:0 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ ticks:{color:'#445567',font:{size:9}}, grid:{display:false} },
+        y:{ min:70, max:100, ticks:{color:'#445567',font:{size:10}}, grid:{color:'rgba(30,80,140,0.2)'} }
+      }
+    }
+  });
+}
+
+function updateCharts(normal, warning, critical){
+  if(donutChart){
+    donutChart.data.datasets[0].data = [normal, warning, critical];
+    donutChart.update('none');
+  }
+  if(historyChart){
+    const t = new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    historyData.labels.push(t);
+    historyData.normal.push(normal);
+    historyData.warning.push(warning);
+    historyData.critical.push(critical);
+    if(historyData.labels.length>30){ historyData.labels.shift(); historyData.normal.shift(); historyData.warning.shift(); historyData.critical.shift(); }
+    historyChart.data.labels = historyData.labels;
+    historyChart.data.datasets[0].data = historyData.normal;
+    historyChart.data.datasets[1].data = historyData.warning;
+    historyChart.data.datasets[2].data = historyData.critical;
+    historyChart.update('none');
+  }
+}
+
+// ── TABLES ──
+function riskBadge(rl){
+  const cls = rl.toLowerCase();
+  const dot = rl==='Critical'?'●':rl==='Warning'?'◆':'✓';
+  return `<span class="risk-badge ${cls}">${dot} ${rl}</span>`;
+}
+
+function barFor(val, max, colorVar){
+  const pct = Math.round(Math.min(100,(val/max)*100));
+  let color = colorVar;
+  if(pct>85) color='var(--red)';
+  else if(pct>70) color='var(--amber)';
+  return `<div class="mini-bar-wrap"><div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%;background:${color}"></div></div><span style="font-size:11px;font-family:'IBM Plex Mono',monospace;width:32px;text-align:right;color:var(--text2)">${typeof val==='number'?val.toFixed(1):val}</span></div>`;
+}
+
+function renderDashTable(batch){
+  const tbody = document.getElementById('dash-table-body');
+  if(!tbody) return;
+  tbody.innerHTML = batch.slice(0,16).map(s=>`
+    <tr onclick="showServerDetail('${s.id}')">
+      <td class="mono">${s.name}</td>
+      <td style="color:var(--text3);font-size:11px">${s.rack}</td>
+      <td>${riskBadge(s.risk_level)}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${s.risk_level==='Critical'?'var(--red)':s.risk_level==='Warning'?'var(--amber)':'var(--green)'}">${s.risk_score.toFixed(1)}</td>
+      <td>${barFor(s.temp,110,'var(--cyan)')}</td>
+      <td>${barFor(s.cpu,100,'var(--cyan)')}</td>
+      <td>${barFor(s.mem,100,'var(--cyan)')}</td>
+      <td>${barFor(s.disk,100,'var(--green)')}</td>
+      <td style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:${s.estimated_ttf_hours?'var(--amber)':'var(--text3)'}">${s.estimated_ttf_hours?s.estimated_ttf_hours+'h':'—'}</td>
+    </tr>
+  `).join('');
+}
+
+function renderSrvTable(batch){
+  const tbody = document.getElementById('srv-table-body');
+  if(!tbody) return;
+  tbody.innerHTML = batch.map(s=>`
+    <tr onclick="showServerDetail('${s.id}')">
+      <td class="mono" style="color:var(--text3);font-size:11px">${s.id}</td>
+      <td class="mono">${s.name}</td>
+      <td style="color:var(--text3);font-size:11px">${s.rack}</td>
+      <td>${riskBadge(s.risk_level)}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${s.risk_level==='Critical'?'var(--red)':s.risk_level==='Warning'?'var(--amber)':'var(--green)'}">${s.risk_score.toFixed(1)}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text2)">${s.confidence.toFixed(1)}%</td>
+      <td>${barFor(s.temp,110,'var(--cyan)')}</td>
+      <td>${barFor(s.cpu,100,'var(--cyan)')}</td>
+      <td>${barFor(s.mem,100,'var(--cyan)')}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${s.power.toFixed(0)}W</td>
+      <td>${barFor(s.cooling,100,'var(--green)')}</td>
+      <td>${barFor(s.net,100,'var(--cyan)')}</td>
+      <td>${barFor(s.disk,100,'var(--green)')}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${s.volt.toFixed(2)}V</td>
+      <td style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:${s.estimated_ttf_hours?'var(--amber)':'var(--text3)'}">${s.estimated_ttf_hours?s.estimated_ttf_hours+'h':'—'}</td>
+    </tr>
+  `).join('');
+}
+
+function showServerDetail(id){
+  const s = servers.find(x=>x.id===id);
+  if(!s) return;
+  const panel = document.getElementById('srv-detail-panel');
+  if(!panel) return;
+  const metrics = [
+    {label:'Temperature',val:s.temp.toFixed(1)+'°C',pct:Math.round(s.temp/110*100),color:s.temp>85?'var(--red)':s.temp>70?'var(--amber)':'var(--cyan)'},
+    {label:'CPU Usage',val:s.cpu.toFixed(1)+'%',pct:Math.round(s.cpu),color:s.cpu>88?'var(--red)':s.cpu>78?'var(--amber)':'var(--cyan)'},
+    {label:'Memory Usage',val:s.mem.toFixed(1)+'%',pct:Math.round(s.mem),color:s.mem>90?'var(--red)':s.mem>80?'var(--amber)':'var(--cyan)'},
+    {label:'Power',val:s.power.toFixed(0)+'W',pct:Math.round(s.power/700*100),color:'var(--cyan)'},
+    {label:'Cooling Eff.',val:s.cooling.toFixed(1)+'%',pct:Math.round(s.cooling),color:s.cooling<40?'var(--red)':s.cooling<50?'var(--amber)':'var(--green)'},
+    {label:'Network Load',val:s.net.toFixed(1)+'%',pct:Math.round(s.net),color:s.net>87?'var(--red)':s.net>75?'var(--amber)':'var(--cyan)'},
+    {label:'Disk Health',val:s.disk.toFixed(1)+'%',pct:Math.round(s.disk),color:s.disk<38?'var(--red)':s.disk<55?'var(--amber)':'var(--green)'},
+    {label:'Volt. Fluct.',val:s.volt.toFixed(3)+'V',pct:Math.round(s.volt/3*100),color:s.volt>1.8?'var(--red)':s.volt>1.2?'var(--amber)':'var(--cyan)'},
+  ];
+  panel.innerHTML = `
+    <div class="detail-panel" style="margin-top:16px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+        <div style="font-size:18px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--cyan)">${s.name}</div>
+        ${riskBadge(s.risk_level)}
+        <div style="font-size:12px;color:var(--text3)">${s.rack}</div>
+        <div style="margin-left:auto;font-size:12px;font-family:'IBM Plex Mono',monospace;color:var(--text3)">Confidence: ${s.confidence.toFixed(1)}%</div>
+        ${s.estimated_ttf_hours?`<div style="font-size:12px;font-family:'IBM Plex Mono',monospace;color:var(--amber)">TTF: ${s.estimated_ttf_hours}h</div>`:''}
+      </div>
+      ${s.triggered_params && s.triggered_params.length>0?`<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">${s.triggered_params.map(p=>`<span style="font-size:11px;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;background:${p.level==='Critical'?'var(--red-dim)':'var(--amber-dim)'};color:${p.level==='Critical'?'var(--red)':'var(--amber)'};border:1px solid ${p.level==='Critical'?'rgba(255,61,61,0.25)':'rgba(255,179,0,0.25)'}">${p.param}</span>`).join('')}</div>`:''}
+      <div class="detail-grid">
+        ${metrics.map(m=>`
+          <div class="detail-metric">
+            <div class="detail-metric-label">${m.label}</div>
+            <div class="detail-metric-val" style="color:${m.color}">${m.val}</div>
+            <div class="detail-metric-bar"><div class="detail-metric-fill" style="width:${m.pct}%;background:${m.color}"></div></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ── ALERT LIST ──
+function renderAlertList(){
+  const container = document.getElementById('alert-list-container');
+  if(!container) return;
+  if(alerts.length===0){ container.innerHTML='<div style="color:var(--text3);font-size:13px;padding:20px">No alerts yet...</div>'; return; }
+  container.innerHTML = alerts.slice(0,30).map(a=>`
+    <div class="alert-item ${a.risk_level.toLowerCase()} ${a.acknowledged?'acked':''}">
+      <div class="alert-icon ${a.risk_level.toLowerCase()}">${a.risk_level==='Critical'?'⚠':'◆'}</div>
+      <div class="alert-body">
+        <div class="alert-title">${a.server_name} — ${a.risk_level}</div>
+        <div class="alert-meta">${new Date(a.timestamp).toLocaleTimeString()} · Risk Score: ${a.risk_score.toFixed(1)}</div>
+        <div class="alert-params">
+          ${(a.triggered_params||[]).map(p=>`<span class="alert-param">${p.param}</span>`).join('')}
+        </div>
+      </div>
+      ${!a.acknowledged?`<button class="ack-btn" onclick="ackAlert('${a.id}')">Acknowledge</button>`:'<span style="font-size:11px;color:var(--text3)">Acked</span>'}
+    </div>
+  `).join('');
+}
+
+function ackAlert(id){
+  const a = alerts.find(x=>x.id===id);
+  if(a) a.acknowledged = true;
+  renderAlertList();
+  const unacked = alerts.filter(a=>!a.acknowledged).length;
+  document.getElementById('alert-badge').textContent = unacked;
+}
+
+function clearAcked(){
+  alerts = alerts.filter(a=>!a.acknowledged);
+  renderAlertList();
+}
+
+// ── RACK VIEW ──
+function renderRackView(batch){
+  const container = document.getElementById('rack-grid-container');
+  if(!container) return;
+  const racks = {};
+  batch.forEach(s=>{
+    if(!racks[s.rack]) racks[s.rack]=[];
+    racks[s.rack].push(s);
+  });
+  container.innerHTML = Object.entries(racks).map(([rack, srvs])=>`
+    <div class="rack-card">
+      <div class="rack-name">${rack}</div>
+      <div class="rack-server-list">
+        ${srvs.map(s=>`
+          <div class="rack-server-row" onclick="showPage('servers',document.querySelector('[onclick*=servers]'));setTimeout(()=>showServerDetail('${s.id}'),100)">
+            <span class="rack-server-name">${s.name}</span>
+            ${riskBadge(s.risk_level)}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── PREDICT PAGE ──
+function runLocalPredict(){
+  const t = {
+    temp: parseFloat(document.getElementById('f-temp').value),
+    cpu: parseFloat(document.getElementById('f-cpu').value),
+    mem: parseFloat(document.getElementById('f-mem').value),
+    power: parseFloat(document.getElementById('f-power').value),
+    cooling: parseFloat(document.getElementById('f-cooling').value),
+    net: parseFloat(document.getElementById('f-net').value),
+    disk: parseFloat(document.getElementById('f-disk').value),
+    volt: parseFloat(document.getElementById('f-volt').value),
+  };
+  const pred = localPredict(t);
+  const resultEl = document.getElementById('pred-result');
+  resultEl.style.display = 'block';
+  const clr = pred.risk_level==='Critical'?'var(--red)':pred.risk_level==='Warning'?'var(--amber)':'var(--green)';
+  resultEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+      <div style="font-size:32px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:${clr}">${pred.risk_level.toUpperCase()}</div>
+      <div>
+        <div style="font-size:12px;color:var(--text3)">Risk Score</div>
+        <div style="font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:${clr}">${pred.risk_score.toFixed(1)}</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text3)">Confidence</div>
+        <div style="font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--cyan)">${pred.confidence.toFixed(1)}%</div>
+      </div>
+      ${pred.estimated_ttf_hours?`<div><div style="font-size:12px;color:var(--text3)">Est. Time to Failure</div><div style="font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--amber)">${pred.estimated_ttf_hours}h</div></div>`:''}
+    </div>
+    ${pred.triggered_params.length>0?`
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px">Triggered Parameters</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${pred.triggered_params.map(p=>`<span style="font-size:11px;padding:4px 10px;border-radius:6px;font-family:'IBM Plex Mono',monospace;background:${p.level==='Critical'?'var(--red-dim)':'var(--amber-dim)'};color:${p.level==='Critical'?'var(--red)':'var(--amber)'};border:1px solid ${p.level==='Critical'?'rgba(255,61,61,0.25)':'rgba(255,179,0,0.25)'}">${p.param} · ${p.level}</span>`).join('')}
+      </div>
+    `:'<div style="font-size:12px;color:var(--green)">All parameters within safe thresholds.</div>'}
+  `;
+}
+
+function loadCriticalSample(){
+  document.getElementById('f-temp').value='97';
+  document.getElementById('f-cpu').value='95';
+  document.getElementById('f-mem').value='94';
+  document.getElementById('f-power').value='660';
+  document.getElementById('f-cooling').value='28';
+  document.getElementById('f-net').value='93';
+  document.getElementById('f-disk').value='22';
+  document.getElementById('f-volt').value='2.3';
+  runLocalPredict();
+}
+
+function loadNormalSample(){
+  document.getElementById('f-temp').value='48';
+  document.getElementById('f-cpu').value='35';
+  document.getElementById('f-mem').value='52';
+  document.getElementById('f-power').value='380';
+  document.getElementById('f-cooling').value='78';
+  document.getElementById('f-net').value='30';
+  document.getElementById('f-disk').value='88';
+  document.getElementById('f-volt').value='0.4';
+  runLocalPredict();
+}
+
+// ── INIT ──
+window.addEventListener('load', ()=>{
+  initCharts();
+  connectWS();
+});
+</script>
+</body>
+</html>
