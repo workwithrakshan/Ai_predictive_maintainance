@@ -9,24 +9,24 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg: #050a0f;
-  --surface: #0d1520;
-  --surface2: #111d2e;
-  --surface3: #162436;
-  --border: rgba(30,80,140,0.3);
-  --border2: rgba(30,80,140,0.5);
-  --text: #e0ecff;
-  --text2: #7a9bbf;
-  --text3: #445567;
-  --green: #00e676;
-  --green-dim: rgba(0,230,118,0.12);
-  --amber: #ffb300;
-  --amber-dim: rgba(255,179,0,0.12);
-  --red: #ff3d3d;
-  --red-dim: rgba(255,61,61,0.12);
-  --blue: #2979ff;
-  --blue-dim: rgba(41,121,255,0.1);
-  --cyan: #00bcd4;
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --surface2: #f5f8fc;
+  --surface3: #e8eef6;
+  --border: rgba(30,80,160,0.12);
+  --border2: rgba(30,80,160,0.25);
+  --text: #0d1e3a;
+  --text2: #3a5a8a;
+  --text3: #7a96b8;
+  --green: #0a8a4a;
+  --green-dim: rgba(10,138,74,0.1);
+  --amber: #b85c00;
+  --amber-dim: rgba(196,122,0,0.1);
+  --red: #d42020;
+  --red-dim: rgba(212,32,32,0.1);
+  --blue: #1a56db;
+  --blue-dim: rgba(26,86,219,0.08);
+  --cyan: #0e6eb8;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,7 +35,7 @@ code, .mono { font-family: 'IBM Plex Mono', monospace; }
 
 /* SCROLLBAR */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-track { background: var(--surface2); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
 /* LAYOUT */
@@ -103,9 +103,9 @@ code, .mono { font-family: 'IBM Plex Mono', monospace; }
 
 /* RISK BADGE */
 .risk-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.3px; font-family: 'IBM Plex Mono', monospace; }
-.risk-badge.normal { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,230,118,0.25); }
-.risk-badge.warning { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,179,0,0.25); }
-.risk-badge.critical { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,61,61,0.25); animation: blink 1.5s infinite; }
+.risk-badge.normal { background: var(--green-dim); color: var(--green); border: 1px solid rgba(10,138,74,0.25); }
+.risk-badge.warning { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(196,122,0,0.25); }
+.risk-badge.critical { background: var(--red-dim); color: var(--red); border: 1px solid rgba(212,32,32,0.25); animation: blink 1.5s infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
 /* MINI BAR */
@@ -171,7 +171,7 @@ code, .mono { font-family: 'IBM Plex Mono', monospace; }
 .field-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
 .field-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.15s; }
 .field-input:focus { border-color: var(--cyan); }
-.pred-btn { background: var(--cyan); color: #000; border: none; border-radius: 8px; padding: 12px 28px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+.pred-btn { background: var(--cyan); color: #fff; border: none; border-radius: 8px; padding: 12px 28px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
 .pred-btn:hover { opacity: 0.85; }
 .pred-result { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 20px; display: none; }
 
@@ -308,8 +308,25 @@ code, .mono { font-family: 'IBM Plex Mono', monospace; }
           <div class="section-title">Alert Log</div>
           <button class="section-action" onclick="clearAcked()">Clear acknowledged</button>
         </div>
-        <div class="alert-list" id="alert-list-container">
-          <div style="color:var(--text3);font-size:13px;padding:20px">No alerts yet — waiting for telemetry...</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--red)">⚠ Critical</span>
+              <span id="badge-critical" style="font-size:10px;font-family:'IBM Plex Mono',monospace;padding:1px 7px;border-radius:10px;background:var(--red-dim);color:var(--red);border:1px solid rgba(212,32,32,0.25)">0</span>
+            </div>
+            <div class="alert-list" id="alert-col-critical">
+              <div style="color:var(--text3);font-size:13px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px">No critical alerts</div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--amber)">◆ Warning</span>
+              <span id="badge-warning" style="font-size:10px;font-family:'IBM Plex Mono',monospace;padding:1px 7px;border-radius:10px;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(184,92,0,0.25)">0</span>
+            </div>
+            <div class="alert-list" id="alert-col-warning">
+              <div style="color:var(--text3);font-size:13px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px">No warning alerts</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -556,9 +573,9 @@ function localPredict(t){
     (t.volt>1.8?3:t.volt>1.2?1:0);
 
   let risk_level, risk_score, risk_color;
-  if(critScore>=8){ risk_level='Critical'; risk_score=Math.min(100,80+Math.random()*20); risk_color='#ff3d3d'; }
-  else if(critScore>=3){ risk_level='Warning'; risk_score=Math.min(79,40+Math.random()*30); risk_color='#ffb300'; }
-  else { risk_level='Normal'; risk_score=Math.random()*20; risk_color='#00e676'; }
+  if(critScore>=8){ risk_level='Critical'; risk_score=Math.min(100,80+Math.random()*20); risk_color='#d42020'; }
+  else if(critScore>=3){ risk_level='Warning'; risk_score=Math.min(79,40+Math.random()*30); risk_color='#c47a00'; }
+  else { risk_level='Normal'; risk_score=Math.random()*20; risk_color='#0a8a4a'; }
 
   const triggered = [];
   if(t.temp>80) triggered.push({param:'temperature',level:'Critical'});
@@ -631,7 +648,7 @@ function initCharts(){
   const dCtx = document.getElementById('donut-chart').getContext('2d');
   donutChart = new Chart(dCtx,{
     type:'doughnut',
-    data:{ labels:['Normal','Warning','Critical'], datasets:[{ data:[16,0,0], backgroundColor:['#00e676','#ffb300','#ff3d3d'], borderWidth:0, hoverOffset:4 }]},
+    data:{ labels:['Normal','Warning','Critical'], datasets:[{ data:[16,0,0], backgroundColor:['#0a8a4a','#c47a00','#d42020'], borderWidth:0, hoverOffset:4 }]},
     options:{ responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{ legend:{display:false} } }
   });
   // History
@@ -639,16 +656,16 @@ function initCharts(){
   historyChart = new Chart(hCtx,{
     type:'line',
     data:{ labels:[], datasets:[
-      { label:'Normal', data:[], borderColor:'#00e676', backgroundColor:'rgba(0,230,118,0.08)', borderWidth:2, tension:0.4, pointRadius:0, fill:true },
-      { label:'Warning', data:[], borderColor:'#ffb300', backgroundColor:'rgba(255,179,0,0.08)', borderWidth:2, tension:0.4, pointRadius:0, fill:true },
-      { label:'Critical', data:[], borderColor:'#ff3d3d', backgroundColor:'rgba(255,61,61,0.08)', borderWidth:2, tension:0.4, pointRadius:0, fill:true },
+      { label:'Normal', data:[], borderColor:'#0a8a4a', backgroundColor:'rgba(10,138,74,0.08)', borderWidth:2, tension:0.4, pointRadius:0, fill:true },
+      { label:'Warning', data:[], borderColor:'#c47a00', backgroundColor:'rgba(196,122,0,0.08)', borderWidth:2, tension:0.4, pointRadius:0, fill:true },
+      { label:'Critical', data:[], borderColor:'#d42020', backgroundColor:'rgba(212,32,32,0.08)', borderWidth:2, tension:0.4, pointRadius:0, fill:true },
     ]},
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false} },
       scales:{
-        x:{ ticks:{color:'#445567',font:{size:10}}, grid:{color:'rgba(30,80,140,0.2)'} },
-        y:{ ticks:{color:'#445567',font:{size:10}}, grid:{color:'rgba(30,80,140,0.2)'}, beginAtZero:true }
+        x:{ ticks:{color:'#7a96b8',font:{size:10}}, grid:{color:'rgba(30,80,160,0.1)'} },
+        y:{ ticks:{color:'#7a96b8',font:{size:10}}, grid:{color:'rgba(30,80,160,0.1)'}, beginAtZero:true }
       }
     }
   });
@@ -658,14 +675,14 @@ function initCharts(){
     type:'bar',
     data:{
       labels:['Random\nForest','XGBoost','Neural\nNet','SVM','Decision\nTree','Log. Reg','KNN','Naive\nBayes'],
-      datasets:[{ label:'Accuracy %', data:[100,97,96,94,92,88,87,82], backgroundColor:['#00bcd4','#2979ff','#2979ff','#2979ff','#2979ff','#2979ff','#2979ff','#2979ff'], borderWidth:0 }]
+      datasets:[{ label:'Accuracy %', data:[100,97,96,94,92,88,87,82], backgroundColor:['#0e6eb8','#1a56db','#1a56db','#1a56db','#1a56db','#1a56db','#1a56db','#1a56db'], borderWidth:0 }]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false} },
       scales:{
-        x:{ ticks:{color:'#445567',font:{size:9}}, grid:{display:false} },
-        y:{ min:70, max:100, ticks:{color:'#445567',font:{size:10}}, grid:{color:'rgba(30,80,140,0.2)'} }
+        x:{ ticks:{color:'#7a96b8',font:{size:9}}, grid:{display:false} },
+        y:{ min:70, max:100, ticks:{color:'#7a96b8',font:{size:10}}, grid:{color:'rgba(30,80,160,0.1)'} }
       }
     }
   });
@@ -788,22 +805,36 @@ function showServerDetail(id){
 
 // ── ALERT LIST ──
 function renderAlertList(){
-  const container = document.getElementById('alert-list-container');
-  if(!container) return;
-  if(alerts.length===0){ container.innerHTML='<div style="color:var(--text3);font-size:13px;padding:20px">No alerts yet...</div>'; return; }
-  container.innerHTML = alerts.slice(0,30).map(a=>`
+  const critical = alerts.filter(a=>a.risk_level==='Critical');
+  const warning  = alerts.filter(a=>a.risk_level==='Warning');
+
+  const colC = document.getElementById('alert-col-critical');
+  const colW = document.getElementById('alert-col-warning');
+  const badgeC = document.getElementById('badge-critical');
+  const badgeW = document.getElementById('badge-warning');
+  if(!colC||!colW) return;
+
+  const unackedC = critical.filter(a=>!a.acknowledged).length;
+  const unackedW = warning.filter(a=>!a.acknowledged).length;
+  if(badgeC) badgeC.textContent = unackedC;
+  if(badgeW) badgeW.textContent = unackedW;
+
+  const renderItems = (list) => list.length===0
+    ? '<div style="color:var(--text3);font-size:13px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px">No alerts</div>'
+    : list.slice(0,20).map(a=>`
     <div class="alert-item ${a.risk_level.toLowerCase()} ${a.acknowledged?'acked':''}">
       <div class="alert-icon ${a.risk_level.toLowerCase()}">${a.risk_level==='Critical'?'⚠':'◆'}</div>
       <div class="alert-body">
-        <div class="alert-title">${a.server_name} — ${a.risk_level}</div>
-        <div class="alert-meta">${new Date(a.timestamp).toLocaleTimeString()} · Risk Score: ${a.risk_score.toFixed(1)}</div>
-        <div class="alert-params">
-          ${(a.triggered_params||[]).map(p=>`<span class="alert-param">${p.param}</span>`).join('')}
-        </div>
+        <div class="alert-title">${a.server_name}</div>
+        <div class="alert-meta">${new Date(a.timestamp).toLocaleTimeString()} · Score: ${a.risk_score.toFixed(1)}</div>
+        <div class="alert-params">${(a.triggered_params||[]).map(p=>`<span class="alert-param">${p.param}</span>`).join('')}</div>
       </div>
-      ${!a.acknowledged?`<button class="ack-btn" onclick="ackAlert('${a.id}')">Acknowledge</button>`:'<span style="font-size:11px;color:var(--text3)">Acked</span>'}
+      ${!a.acknowledged?`<button class="ack-btn" onclick="ackAlert('${a.id}')">Ack</button>`:'<span style="font-size:11px;color:var(--text3)">Acked</span>'}
     </div>
   `).join('');
+
+  colC.innerHTML = renderItems(critical);
+  colW.innerHTML = renderItems(warning);
 }
 
 function ackAlert(id){
